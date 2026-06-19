@@ -86,7 +86,7 @@ mod tests {
 
         let mut audio = Vec::new();
         audio.extend_from_slice(&speech);
-        audio.extend(std::iter::repeat(0.0f32).take(16000)); // 1s 静音
+        audio.extend(std::iter::repeat_n(0.0f32, 16000)); // 1s 静音
         audio.extend_from_slice(&speech);
 
         let segs = segment(&dir().join("silero_vad.onnx"), &audio).expect("VAD 分段失败");

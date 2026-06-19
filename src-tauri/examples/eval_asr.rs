@@ -60,7 +60,7 @@ fn list_wavs(dir: &Path) -> Vec<PathBuf> {
     let mut v: Vec<PathBuf> = fs::read_dir(dir)
         .map(|rd| {
             rd.filter_map(|e| e.ok().map(|e| e.path()))
-                .filter(|p| p.extension().map_or(false, |x| x == "wav"))
+                .filter(|p| p.extension().is_some_and(|x| x == "wav"))
                 .collect()
         })
         .unwrap_or_default();

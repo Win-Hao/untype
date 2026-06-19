@@ -6,6 +6,7 @@
 <br/>
 <sub><i>A lightweight, faithful speech-to-text input tool for macOS.</i></sub>
 
+[![CI](https://github.com/Win-Hao/untype/actions/workflows/ci.yml/badge.svg)](https://github.com/Win-Hao/untype/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/Win-Hao/untype?style=flat-square)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Win-Hao/untype?style=flat-square&label=release)](https://github.com/Win-Hao/untype/releases)
 ![Platform](https://img.shields.io/badge/platform-macOS-111?style=flat-square)
