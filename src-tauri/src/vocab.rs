@@ -151,7 +151,7 @@ impl Vocab {
             .iter()
             .map(|r| (r.wrong.clone(), r.right.clone()))
             .collect();
-        replacements.sort_by(|a, b| b.0.chars().count().cmp(&a.0.chars().count()));
+        replacements.sort_by_key(|r| std::cmp::Reverse(r.0.chars().count()));
 
         let mut pinyin_terms: Vec<(String, Vec<String>)> = Vec::new();
         for t in &data.pinyin_terms {
@@ -162,7 +162,7 @@ impl Vocab {
                 pinyin_terms.push((t.clone(), py));
             }
         }
-        pinyin_terms.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
+        pinyin_terms.sort_by_key(|t| std::cmp::Reverse(t.1.len()));
 
         Self {
             terms,
