@@ -45,6 +45,7 @@ npm run tauri build      # 产物在 src-tauri/target/release/bundle/
 
 ## 获取更新提醒
 
+- **应用内检查更新**：设置 →「关于」会查最新 release，有新版即提示并一键跳转下载页。
 - 点本仓库右上角 **Watch → Custom → ✅ Releases**：发布新版时 GitHub 会邮件 / 站内通知你。
 - 或订阅 RSS：`https://github.com/Win-Hao/untype/releases.atom`。
 

@@ -510,6 +510,64 @@ fn stop_mic_monitor(state: tauri::State<AppState>) {
     state.mic_monitor.lock().unwrap().stop();
 }
 
+/// 应用内检查更新：查 GitHub 最新 release，与当前版本比对。只提醒 + 给下载页，
+/// 不自动下载替换（开源未签名，自动替换仍会被 Gatekeeper 拦）。
+/// 无 release / 网络错 / 解析失败都当作「无更新」静默返回，不打扰。
+#[derive(serde::Serialize)]
+struct UpdateInfo {
+    has_update: bool,
+    current: String,
+    latest: String,
+    url: String,
+}
+
+/// 语义版本比较：latest 是否 > current（按 `.` 分段比数字，缺位补 0、非数字段当 0）。
+fn version_gt(latest: &str, current: &str) -> bool {
+    let parse = |s: &str| -> Vec<u32> { s.split('.').map(|p| p.trim().parse().unwrap_or(0)).collect() };
+    let (a, b) = (parse(latest), parse(current));
+    for i in 0..a.len().max(b.len()) {
+        let (x, y) = (a.get(i).copied().unwrap_or(0), b.get(i).copied().unwrap_or(0));
+        if x != y {
+            return x > y;
+        }
+    }
+    false
+}
+
+#[tauri::command]
+fn check_update() -> UpdateInfo {
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    let none = || UpdateInfo {
+        has_update: false,
+        current: env!("CARGO_PKG_VERSION").to_string(),
+        latest: env!("CARGO_PKG_VERSION").to_string(),
+        url: String::new(),
+    };
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(std::time::Duration::from_secs(10))
+        .timeout_read(std::time::Duration::from_secs(10))
+        .build();
+    let resp = match agent
+        .get("https://api.github.com/repos/Win-Hao/untype/releases/latest")
+        .set("User-Agent", "Untype-update-check")
+        .set("Accept", "application/vnd.github+json")
+        .call()
+    {
+        Ok(r) => r,
+        Err(_) => return none(), // 404（无 release）/ 网络错 → 静默无更新
+    };
+    let json: serde_json::Value = match resp.into_json() {
+        Ok(j) => j,
+        Err(_) => return none(),
+    };
+    let latest = json["tag_name"].as_str().unwrap_or("").trim_start_matches('v').to_string();
+    let url = json["html_url"].as_str().unwrap_or("").to_string();
+    if latest.is_empty() {
+        return none();
+    }
+    UpdateInfo { has_update: version_gt(&latest, &current), current, latest, url }
+}
+
 /// ASR 引擎配置（前端读写）：引擎选择 + 火山 / 阿里 BYOK 凭证 + 阿里模型。
 #[derive(serde::Serialize, serde::Deserialize)]
 struct AsrConfig {
@@ -629,7 +687,8 @@ pub fn run() {
             get_onboarded,
             complete_onboarding,
             check_accessibility,
-            request_accessibility
+            request_accessibility,
+            check_update
         ])
         .setup(|app| {
             // ---- 系统托盘 ----

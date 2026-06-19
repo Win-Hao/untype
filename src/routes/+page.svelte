@@ -399,6 +399,26 @@
     }
   }
 
+  // ---- 应用内检查更新（查 GitHub 最新 release，只提醒 + 跳转下载，不自动替换）----
+  type UpdateInfo = { has_update: boolean; current: string; latest: string; url: string };
+  let updateInfo = $state<UpdateInfo | null>(null);
+  let checkingUpdate = $state(false);
+  let checkedUpdate = $state(false);
+  async function checkUpdate() {
+    checkingUpdate = true;
+    try {
+      updateInfo = await invoke<UpdateInfo>("check_update");
+      checkedUpdate = true;
+    } catch {
+      // 静默：网络 / 无 release 不打扰
+    } finally {
+      checkingUpdate = false;
+    }
+  }
+  onMount(() => {
+    checkUpdate(); // 启动后台静默查一次最新版
+  });
+
   // ---- 选麦弹窗：用实时电平条当场测每个麦能不能用 ----
   function startMicMonitor(device: string) {
     invoke("start_mic_monitor", { device }).catch(() => {});
@@ -1207,7 +1227,22 @@
             </svg>
             <!-- 字标：Untype + 蓝句点（呼应 OpenDesign 的 Untype. 字样） -->
             <div class="text-2xl font-semibold tracking-tight">Untype<span class="text-[color:var(--accent)]">.</span></div>
-            <div class="text-xs text-[color:var(--fg-3)]">语音听写 · v0.1.0</div>
+            <div class="text-xs text-[color:var(--fg-3)]">语音听写 · v{updateInfo?.current ?? "0.1.0"}</div>
+            <!-- 应用内检查更新：克制风，一行文字 / 链接 -->
+            <div class="text-xs">
+              {#if checkingUpdate}
+                <span class="text-[color:var(--fg-3)]">检查更新中…</span>
+              {:else if updateInfo?.has_update}
+                <button class="text-[color:var(--accent)] hover:underline" onclick={() => openUrl(updateInfo!.url)}>
+                  有新版本 v{updateInfo.latest} · 前往下载
+                </button>
+              {:else if checkedUpdate}
+                <span class="text-[color:var(--fg-3)]">已是最新</span>
+                <button class="ml-1 text-[color:var(--fg-3)] underline hover:text-[color:var(--fg-2)]" onclick={checkUpdate}>重新检查</button>
+              {:else}
+                <button class="text-[color:var(--accent)] hover:underline" onclick={checkUpdate}>检查更新</button>
+              {/if}
+            </div>
             <p class="max-w-xs text-sm leading-relaxed text-[color:var(--fg-2)]">
               说话，不用打字——本地 SenseVoice 识别 + 云端 AI 轻整理，按住热键说话即转成文字、注入光标。
             </p>

@@ -15,7 +15,8 @@
         { "url": "https://open.bigmodel.cn/*" },
         { "url": "https://platform.moonshot.cn/*" },
         { "url": "https://aistudio.google.com/*" },
-        { "url": "https://platform.openai.com/*" }
+        { "url": "https://platform.openai.com/*" },
+        { "url": "https://github.com/Win-Hao/untype/releases/*" }
       ]
     }
   ]
