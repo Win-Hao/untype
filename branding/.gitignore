@@ -1,0 +1,6 @@
+# 渲染产物（可由 gen-icon.cjs + rsvg-convert 随时重出，不入库）
+*.png
+# 早期废弃草稿（蓝色方块版 / About 标记 QA 件）
+untype-A.svg
+untype-B.svg
+about-mark.svg

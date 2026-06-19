@@ -1,0 +1,44 @@
+[package]
+name = "tauri-app"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "tauri_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "macos-private-api", "image-png"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sherpa-rs = "0.6.8"
+hound = "3.5.1"
+cpal = "0.18.1"
+enigo = "0.6.1"
+ureq = { version = "2", features = ["json"] }
+pinyin = { version = "0.11.0", features = ["plain"] }
+arboard = { version = "3.6.1", default-features = false }
+macos-accessibility-client = "0.0.2"
+# 云端 ASR：WebSocket 流式（火山 gzip 二进制协议 / 阿里 JSON + base64）
+tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
+flate2 = "1"
+base64 = "0.22"
+# 录音胶囊频谱波形：小 FFT 把音量拆成人声频段（见 viz.rs）
+rustfft = "6"
+
+# 单键全局热键（含单修饰键、区分左右）：macOS 用 CGEventTap 监听键盘
+[target.'cfg(target_os = "macos")'.dependencies]
+core-graphics = "0.25"
+core-foundation = "0.10"
+

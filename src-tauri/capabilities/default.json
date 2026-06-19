@@ -1,0 +1,22 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window and the floating capsule",
+  "windows": ["main", "capsule"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://console.volcengine.com/*" },
+        { "url": "https://bailian.console.aliyun.com/*" },
+        { "url": "https://platform.deepseek.com/*" },
+        { "url": "https://open.bigmodel.cn/*" },
+        { "url": "https://platform.moonshot.cn/*" },
+        { "url": "https://aistudio.google.com/*" },
+        { "url": "https://platform.openai.com/*" }
+      ]
+    }
+  ]
+}

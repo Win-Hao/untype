@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Untype",
+  "version": "0.1.0",
+  "identifier": "com.voicetotext.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../build"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "title": "Untype",
+        "width": 760,
+        "height": 600,
+        "minWidth": 680,
+        "minHeight": 520,
+        "resizable": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      },
+      {
+        "label": "capsule",
+        "url": "/capsule",
+        "width": 240,
+        "height": 52,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "focus": false,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": false,
+        "title": "capsule"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "resources": [
+      "models/sense-voice/model.int8.onnx",
+      "models/sense-voice/tokens.txt",
+      "models/sense-voice/silero_vad.onnx",
+      "vocab.txt"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

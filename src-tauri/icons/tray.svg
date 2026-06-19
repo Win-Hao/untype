@@ -1,0 +1,10 @@
+<svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg">
+  <!-- 菜单栏托盘图标：单色模板（glyph only，无瓷砖）。简化标记＝3 根波形条 + 文字光标。
+       全黑、靠 alpha；macOS 以 template 方式按浅/深菜单栏自动着色，故不放强调蓝。 -->
+  <g fill="#000000">
+    <rect x="73" y="125" width="34" height="110" rx="17"/>
+    <rect x="133" y="95" width="34" height="170" rx="17"/>
+    <rect x="193" y="125" width="34" height="110" rx="17"/>
+    <rect x="253" y="80" width="34" height="200" rx="17"/>
+  </g>
+</svg>
