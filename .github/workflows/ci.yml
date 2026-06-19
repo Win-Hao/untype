@@ -32,6 +32,10 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          prefix-key: v2
+          # sherpa-rs 把 sherpa-onnx + onnxruntime 预编译库缓存在这里；rust-cache 默认只存 target，
+          # 命中后 sherpa-rs-sys 不重新下载 → test 链接二进制会 onnxruntime not found，故一并缓存。
+          cache-directories: ~/Library/Caches/sherpa-rs
 
       # tauri-build 的 build.rs 会校验 bundle.resources 路径存在；真实模型是 GB 级、不入库。
       # CI 只验证代码正确性（单测不加载模型，#[ignore] 集成测试才加载），放占位空文件过校验即可。
