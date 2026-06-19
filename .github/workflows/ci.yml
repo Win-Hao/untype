@@ -33,6 +33,15 @@ jobs:
         with:
           workspaces: src-tauri
 
+      # tauri-build 的 build.rs 会校验 bundle.resources 路径存在；真实模型是 GB 级、不入库。
+      # CI 只验证代码正确性（单测不加载模型，#[ignore] 集成测试才加载），放占位空文件过校验即可。
+      - name: Stub model resources for tauri-build
+        run: |
+          mkdir -p src-tauri/models/sense-voice
+          touch src-tauri/models/sense-voice/model.int8.onnx \
+                src-tauri/models/sense-voice/tokens.txt \
+                src-tauri/models/sense-voice/silero_vad.onnx
+
       - name: Install frontend deps
         run: npm ci
 
