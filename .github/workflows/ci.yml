@@ -59,4 +59,15 @@ jobs:
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
       - name: Rust tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        run: |
+          # rust-cache 恢复 target 后，sherpa-rs 的 onnxruntime dylib 不在 dyld 搜索路径里
+          # （它原本装在 ~/Library/Caches/sherpa-rs），运行 test 二进制会 dyld 找不到 → SIGABRT。
+          # 把它复制到 dyld 会搜的 target/debug/deps 与 target/debug 下，并加进回退路径。
+          DYLIB=$(find "$HOME/Library/Caches/sherpa-rs" -name 'libonnxruntime*.dylib' 2>/dev/null | head -1)
+          if [ -n "$DYLIB" ]; then
+            mkdir -p src-tauri/target/debug/deps
+            cp "$DYLIB" src-tauri/target/debug/deps/ || true
+            cp "$DYLIB" src-tauri/target/debug/ || true
+            export DYLD_FALLBACK_LIBRARY_PATH="$(dirname "$DYLIB"):${DYLD_FALLBACK_LIBRARY_PATH:-}"
+          fi
+          cargo test --manifest-path src-tauri/Cargo.toml
