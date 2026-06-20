@@ -93,7 +93,7 @@ On first launch the app requests **Microphone** and **Accessibility** permission
 
 ## Configuration
 
-- **Recognition engine:** local SenseVoice by default (works out of the box); switch to cloud in Settings for more speed (add a Volcengine or Alibaba key).
+- **Recognition engine:** local SenseVoice by default — works out of the box and is already fast offline, just less accurate; switch to cloud in Settings for higher accuracy (and a bit more speed) by adding a Volcengine or Alibaba key.
 - **AI tidy-up** (optional): add the base_url + key + model of any OpenAI-compatible LLM; defaults to Zhipu glm-4-flash (fast, with a free tier).
 - **Hotkey / microphone / dictionary:** all in the Settings panel.
 
