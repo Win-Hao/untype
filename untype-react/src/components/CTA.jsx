@@ -1,5 +1,5 @@
 import { asset } from '../lib/asset.js'
-import { DOWNLOAD_URL } from '../lib/links.js'
+import { DOWNLOAD_URL, PROFILE_URL } from '../lib/links.js'
 
 /* VIII · 下载 CTA */
 export default function CTA() {
@@ -18,7 +18,7 @@ export default function CTA() {
             <p className="lead" data-reveal="">下载 Untype，按一下快捷键，把第一句话说出来。文字会自己落定。</p>
             <div className="cta-actions" data-reveal="">
               <a className="btn btn-primary" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">下载 macOS 版 <span className="arrow"><svg viewBox="0 0 24 24"><path d="M12 4v12M6 12l6 6 6-6" /></svg></span></a>
-              <a className="email-pill" href="mailto:hello@untype.app">hello@untype.app <span className="arrow-circle">↗</span></a>
+              <a className="email-pill" href={PROFILE_URL} target="_blank" rel="noopener noreferrer">github.com/Win-Hao <span className="arrow-circle">↗</span></a>
             </div>
             <div className="cta-foot" data-reveal="">
               <span className="stamp">免费试用</span>

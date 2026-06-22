@@ -1,10 +1,10 @@
 import BrandMark from './BrandMark.jsx'
 import { scrollToTop } from '../lib/scroll.js'
-import { GITHUB_URL, CHANGELOG_URL, ISSUES_URL } from '../lib/links.js'
+import { GITHUB_URL, CHANGELOG_URL, ISSUES_URL, PROFILE_URL } from '../lib/links.js'
 
 const COLS = [
   { h: '产品', links: [['功能', '#capabilities'], ['使用场景', '#labs'], ['使用流程', '#method'], ['下载', '#cta']] },
-  { h: '资源', links: [['快捷键说明', GITHUB_URL], ['常见问题', ISSUES_URL], ['更新日志', CHANGELOG_URL], ['联系我们', 'mailto:hello@untype.app']] },
+  { h: '资源', links: [['快捷键说明', GITHUB_URL], ['常见问题', ISSUES_URL], ['更新日志', CHANGELOG_URL], ['联系我们', PROFILE_URL]] },
   { h: '项目', links: [['关于', '#about'], ['源代码', GITHUB_URL], ['提交反馈', ISSUES_URL]] },
   { h: '说明', links: [['隐私与权限', GITHUB_URL], ['开源协议 · MIT', GITHUB_URL]] },
 ]
