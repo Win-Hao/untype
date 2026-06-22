@@ -1,0 +1,21 @@
+{
+  "name": "untype-react",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Untype 落地页 — Atelier Zero 编辑拼贴风，React + Vite 组件化版本",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.0"
+  }
+}
