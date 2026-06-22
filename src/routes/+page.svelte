@@ -79,6 +79,9 @@
   let onboarding = $state(false);
   let section = $state<"voice" | "engine" | "ai" | "dict" | "about">("voice");
   let accessibilityOk = $state(false);
+  // 本次启动时的辅助功能权限。若启动时没有、运行中才授权，需重启 app 让 CGEventTap 生效。
+  let accessibilityAtLaunch = $state<boolean | null>(null);
+  const accessibilityNeedsRestart = $derived(accessibilityAtLaunch === false && accessibilityOk);
 
   const NAV = [
     { id: "voice", label: "语音输入", icon: Mic },
@@ -199,13 +202,31 @@
   }
 
   async function refreshAccessibility() {
-    accessibilityOk = await invoke<boolean>("check_accessibility");
+    const ok = await invoke<boolean>("check_accessibility");
+    if (accessibilityAtLaunch === null) accessibilityAtLaunch = ok;
+    accessibilityOk = ok;
   }
   async function grantAccessibility() {
+    // 先清掉可能失配的旧授权记录：ad-hoc 签名每次构建 cdhash 会变，旧记录会让系统设置
+    // 显示「已勾选」却实际无效；清掉后再弹授权框，让用户干净地授权当前版本。
+    await invoke("reset_accessibility_tcc");
     await invoke("request_accessibility");
-    // 弹框后用户去系统设置授权，回来重查
     setTimeout(refreshAccessibility, 800);
   }
+  // 辅助功能授权后 CGEventTap 需重启进程才生效，提供一键重启。
+  async function restartApp() {
+    await invoke("restart_app");
+  }
+  // 辅助功能状态：定时 + 窗口重新聚焦时刷新，用户去系统设置改完切回来即时反映。
+  onMount(() => {
+    const t = setInterval(refreshAccessibility, 2000);
+    const onFocus = () => refreshAccessibility();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("focus", onFocus);
+    };
+  });
   async function finishOnboarding(target: "voice" | "ai" = "voice") {
     await invoke("complete_onboarding");
     onboarding = false;
@@ -769,9 +790,25 @@
           <div class={cardCls}>
             <div class={cardHeadCls}>快捷键</div>
             {#if !accessibilityOk}
-              <p class="mx-4 mb-1 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs leading-snug text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-                单键热键需要「辅助功能」权限；请到「关于」页开启后重启 app。
-              </p>
+              <div class="mx-4 mb-1 flex items-center gap-2.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs leading-snug text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                <span class="min-w-0 flex-1">单键热键需要「辅助功能」权限，点「开启」去系统设置授权。</span>
+                <button
+                  class="shrink-0 rounded bg-amber-600/90 px-2.5 py-1 font-medium text-white transition hover:bg-amber-600 dark:bg-amber-500/90 dark:hover:bg-amber-500"
+                  onclick={grantAccessibility}
+                >
+                  开启
+                </button>
+              </div>
+            {:else if accessibilityNeedsRestart}
+              <div class="mx-4 mb-1 flex items-center gap-2.5 rounded-md bg-emerald-50 px-2.5 py-1.5 text-xs leading-snug text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                <span class="min-w-0 flex-1">✓ 辅助功能已授权，重启 app 后单键热键即生效。</span>
+                <button
+                  class="shrink-0 rounded bg-emerald-600 px-2.5 py-1 font-medium text-white transition hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                  onclick={restartApp}
+                >
+                  立即重启
+                </button>
+              </div>
             {/if}
             <div class={dividerCls}>
               {#each KEY_ROWS as row}
@@ -1256,7 +1293,14 @@
                   <div class="text-sm font-medium">辅助功能</div>
                   <div class={descCls}>把文字自动注入光标；未授权则复制到剪贴板，⌘V 粘贴。</div>
                 </div>
-                {#if accessibilityOk}
+                {#if accessibilityNeedsRestart}
+                  <button
+                    class="shrink-0 rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-emerald-700"
+                    onclick={restartApp}
+                  >
+                    重启生效
+                  </button>
+                {:else if accessibilityOk}
                   <span class="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
                     <Check size={14} /> 已授权
                   </span>

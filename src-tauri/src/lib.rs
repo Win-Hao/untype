@@ -22,8 +22,8 @@ use std::sync::{Arc, Mutex};
 use activation::{Activation, Effect, RecordingState, Trigger};
 use tauri::{
     menu::{Menu, MenuItem},
-    tray::TrayIconBuilder,
-    AppHandle, Emitter, Manager, PhysicalPosition,
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    AppHandle, Emitter, Manager, PhysicalPosition, WindowEvent,
 };
 
 /// sherpa 识别器内部是裸指针（!Send）。底层 C 对象可安全跨线程移动，
@@ -78,6 +78,26 @@ pub(crate) fn load_vocab(app: &AppHandle) -> vocab::Vocab {
         }
     }
     vocab::Vocab::load() // 开发期回退（env / CARGO_MANIFEST_DIR）
+}
+
+#[cfg(target_os = "macos")]
+fn set_dock_visible(app: &AppHandle, visible: bool) {
+    let ah = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        let _ = ah.set_dock_visibility(visible);
+    });
+}
+
+/// 显示并聚焦主窗口。关窗后窗口只是被隐藏（app 仍在后台常驻），
+/// 点 Dock 图标（RunEvent::Reopen）或点菜单栏托盘图标都唤起这里，把窗口带回前台。
+fn show_main_window(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    set_dock_visible(app, true);
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+    }
 }
 
 fn set_tray(app: &AppHandle, recording: bool) {
@@ -622,6 +642,32 @@ fn complete_onboarding(app: AppHandle) -> Result<(), String> {
     prefs::save(&app, &p)
 }
 
+/// 重置本 app 的辅助功能 TCC 授权记录。ad-hoc 签名每次构建 cdhash 变、旧授权失效，
+/// 但系统设置仍显示「已勾选」——清掉旧记录可消除「开关开着却无效」的矛盾，让用户干净地
+/// 重新授权当前版本（参考 OpenLess 的兜底做法）。
+#[tauri::command]
+fn reset_accessibility_tcc() {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("tccutil")
+            .args(["reset", "Accessibility", "com.voicetotext.app"])
+            .status();
+    }
+}
+
+/// 重启 app：辅助功能授权后 CGEventTap 需重启进程才生效。重启前清掉 .app 的 quarantine，
+/// 避免分发 / 更新后 Gatekeeper 拦「已损坏」。
+#[tauri::command]
+fn restart_app(app: tauri::AppHandle) {
+    #[cfg(target_os = "macos")]
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(app_path) = exe.ancestors().find(|p| p.extension().map_or(false, |e| e == "app")) {
+            let _ = std::process::Command::new("xattr").args(["-cr"]).arg(app_path).status();
+        }
+    }
+    app.restart();
+}
+
 /// 查询是否已授予 macOS 辅助功能权限（注入用）。
 #[tauri::command]
 fn check_accessibility() -> bool {
@@ -652,6 +698,21 @@ fn request_accessibility() -> bool {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .on_window_event(|window, event| {
+            if matches!(event, WindowEvent::CloseRequested { .. }) {
+                eprintln!("[DIAG] CloseRequested label={:?}", window.label());
+            }
+            // 关闭主窗口 = 隐藏到后台常驻（不退出，符合 macOS 习惯）；
+            // 之后点 Dock 图标或菜单栏托盘图标都可重新唤起。capsule 等其它窗口不拦截。
+            if window.label() == "main" {
+                if let WindowEvent::CloseRequested { api, .. } = event {
+                    api.prevent_close();
+                    let _ = window.hide();
+                    #[cfg(target_os = "macos")]
+                    set_dock_visible(window.app_handle(), false);
+                }
+            }
+        })
         .manage(AppState {
             activation: Mutex::new(Activation::new()),
             recorder: Mutex::new(recorder::Recorder::new()),
@@ -688,9 +749,12 @@ pub fn run() {
             complete_onboarding,
             check_accessibility,
             request_accessibility,
-            check_update
+            check_update,
+            reset_accessibility_tcc,
+            restart_app
         ])
         .setup(|app| {
+            eprintln!("[DIAG] window labels = {:?}", app.webview_windows().keys().cloned().collect::<Vec<_>>());
             // ---- 系统托盘 ----
             let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&quit])?;
@@ -700,10 +764,23 @@ pub fn run() {
                 .icon(tauri::include_image!("icons/tray.png"))
                 .icon_as_template(true)
                 .menu(&menu)
+                // 左键点击不弹菜单，而是唤起主窗口；右键仍弹菜单（含「退出」）
+                .show_menu_on_left_click(false)
                 .tooltip("Untype · 空闲")
                 .on_menu_event(|app, event| {
                     if event.id.as_ref() == "quit" {
                         app.exit(0);
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    // 左键单击（抬起）唤起主窗口 —— 即「点状态栏图标打开窗口」
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        show_main_window(tray.app_handle());
                     }
                 })
                 .build(app)?;
@@ -731,6 +808,13 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, _event| {
+            // 点 Dock 图标（macOS Reopen 事件）唤起主窗口，与点菜单栏托盘图标行为一致
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = &_event {
+                show_main_window(_app);
+            }
+        });
 }
