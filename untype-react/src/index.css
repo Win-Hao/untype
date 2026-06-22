@@ -2,7 +2,9 @@
    Atelier Zero — canonical landing stylesheet (inlined verbatim).
    Source of truth: design-systems/atelier-zero + open-design-landing.
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* 字体改由 index.html 的 <link rel="preconnect"> + <link rel="stylesheet"> 提前加载。
+   不再用 @import：@import 要等这份 CSS 下载并解析后才去拉字体，导致 Inter 晚到 ~2.5s，
+   swap 时引发 hero 整块重排，把 Star 按钮的图标横竖各顶了 ~4px（用户看到的「抖动」）。 */
 
 :root {
   --paper: #efe7d2;
