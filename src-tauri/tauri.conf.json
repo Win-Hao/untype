@@ -63,7 +63,7 @@
         "target/release/libonnxruntime.1.17.1.dylib",
         "target/release/libsherpa-onnx-c-api.dylib"
       ],
-      "signingIdentity": "-",
+      "signingIdentity": "Developer ID Application: Yonghao Huang (Q9S5VDGD8Q)",
       "hardenedRuntime": false,
       "dmg": {
         "background": "dmg/background.png",
