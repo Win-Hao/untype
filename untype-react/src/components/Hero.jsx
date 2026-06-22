@@ -1,5 +1,6 @@
 import { asset } from '../lib/asset.js'
 import { DOWNLOAD_DMG } from '../lib/links.js'
+import StarButton from './StarButton.jsx'
 
 /* I · 主视觉 */
 export default function Hero() {
@@ -12,7 +13,7 @@ export default function Hero() {
           <p className="lead" data-reveal="">Untype 是一款极简语音转文字工具。按下快捷键，开口说话，标点与分段自动整理，文字直接落进你正在用的任何输入框 —— 不打字，也能成文。</p>
           <div className="hero-actions" data-reveal="">
             <a className="btn btn-primary" href={DOWNLOAD_DMG}>下载 macOS 版 <span className="arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span></a>
-            <a className="btn btn-ghost" href="#method">看它怎么工作</a>
+            <StarButton />
           </div>
           <div className="hero-stats" data-reveal="">
             <span className="stat"><span className="ring solid">1</span><span className="stat-label">一个快捷键<b>全局唤起</b></span></span>
