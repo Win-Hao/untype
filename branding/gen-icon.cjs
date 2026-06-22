@@ -37,6 +37,17 @@ function squircle(cx, cy, r, n) {
   return d + "Z";
 }
 
+/* macOS 标准圆角矩形：内容 824×824 居中于 1024 画布，圆角半径 ~184（≈22.4%），
+   比超椭圆 n=5 圆润得多，符合 Big Sur 图标网格（Dock 里才像正经 macOS 图标）。 */
+function roundedRect(x, y, w, h, r) {
+  return (
+    `M${x + r} ${y} H${x + w - r} A${r} ${r} 0 0 1 ${x + w} ${y + r} ` +
+    `V${y + h - r} A${r} ${r} 0 0 1 ${x + w - r} ${y + h} ` +
+    `H${x + r} A${r} ${r} 0 0 1 ${x} ${y + h - r} ` +
+    `V${y + r} A${r} ${r} 0 0 1 ${x + r} ${y} Z`
+  );
+}
+
 /* 波形 → 基线 连续笔画（振幅自左向右递减，收敛为一行文字基线） */
 const WAVE =
   "M 226 512 C 256 384, 300 384, 330 512 C 360 640, 404 640, 432 512 " +
@@ -50,7 +61,7 @@ function iconSVG(variant, compact) {
   const accent = dark ? hex(0.70, 0.085, 250) : hex(0.64, 0.072, 250);
   const hair = dark ? rgba(0.50, 0.02, 255, 0.55) : rgba(0.72, 0.012, 250, 0.6);
   const sheen = dark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.80)";
-  const sq = squircle(512, 512, 412, 5);
+  const sq = roundedRect(100, 100, 824, 824, 184);
 
   let art;
   if (compact) {

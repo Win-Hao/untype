@@ -11,3 +11,5 @@
 
 # 本地模型（体积大，按需下载）
 /models
+icons/android/
+icons/ios/
