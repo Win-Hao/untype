@@ -20,7 +20,7 @@ export default function CTA() {
               <a className="btn btn-primary" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">下载 macOS 版 <span className="arrow"><svg viewBox="0 0 24 24"><path d="M12 4v12M6 12l6 6 6-6" /></svg></span></a>
               <a className="email-pill" href={PROFILE_URL} target="_blank" rel="noopener noreferrer">github.com/Win-Hao <span className="arrow-circle">↗</span></a>
             </div>
-            <p className="cta-note" data-reveal="">开源自构建，未做苹果公证。首次打开若被系统拦下：右键点应用图标 →「打开」，或在终端执行 <code className="code-inline">xattr -dr com.apple.quarantine /Applications/Untype.app</code></p>
+            <p className="cta-note" data-reveal="">免费开源（MIT），已做 Apple 签名与公证，下载后双击即可直接打开。</p>
             <div className="cta-foot" data-reveal="">
               <span className="stamp">免费试用</span>
               <span>macOS 12+ · Apple Silicon</span>
