@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* ============================================================
    设计 token —— 颜色 / 圆角 / 阴影 / 字体集中定义，浅深色双主题
