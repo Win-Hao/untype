@@ -806,6 +806,25 @@ pub fn run() {
                 }
             });
 
+            // 冷启动：主窗 visible:false 创建，setup 里按系统深浅设原生 themed 底色后「立即」显示。
+            // 不做开场动画——WKWebView 在 SPA 启动那 ~0.5s 不绘制页内内容，且冷启动期对新窗口渲染有
+            // 挂起（实测独立 splash 窗 frames 冻在 1~2、内容从不合成，靠它绕不过去）。改用原生底色
+            //（非 WebView 内容、可靠绘制）兜住这段：用户看到一块干净的 themed 深色，SPA 就绪即填上 UI。
+            // setup 跑在主线程，窗口操作可直接调。
+            if let Some(w) = app.get_webview_window("main") {
+                let dark = w.theme().map(|t| t == tauri::Theme::Dark).unwrap_or(true);
+                let bg = if dark {
+                    tauri::window::Color(27, 28, 31, 255)
+                } else {
+                    tauri::window::Color(243, 244, 246, 255)
+                };
+                let _ = w.set_background_color(Some(bg));
+                #[cfg(target_os = "macos")]
+                let _ = app.handle().set_dock_visibility(true);
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+
             Ok(())
         })
         .build(tauri::generate_context!())

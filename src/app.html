@@ -1,10 +1,26 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Tauri + SvelteKit + Typescript App</title>
+    <meta name="color-scheme" content="light dark" />
+    <title>Untype</title>
+    <style>
+      /* 冷启动兜底底色（深浅与 app.css --bg 一致）。主窗 visible:false，setup 里设原生 themed 底色后立即显示；
+         WKWebView 在 SPA 启动那 ~0.5s 不绘制页内内容，这段就靠原生窗底色 + 本兜底底色防白屏。 */
+      html,
+      body {
+        margin: 0;
+        background: #f3f4f6;
+      }
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          background: #1b1c1f;
+        }
+      }
+    </style>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

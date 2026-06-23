@@ -12,6 +12,10 @@ const config = {
     adapter: adapter({
       fallback: "index.html",
     }),
+    // 把页面 CSS 内联进 HTML（阈值 > 实际 ~30KB）。否则 SvelteKit 在 <head> 注入
+    // <link rel="stylesheet">，那是「渲染阻塞」资源——WebKit 会等它加载完才画第一帧，
+    // 拖慢主窗冷启动首帧。内联后无外链阻塞，主窗 UI 首帧更快画出。
+    inlineStyleThreshold: 100000,
   },
 };
 

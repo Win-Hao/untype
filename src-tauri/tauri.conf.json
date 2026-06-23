@@ -14,6 +14,8 @@
     "windows": [
       {
         "title": "Untype",
+        "visible": false,
+        "center": true,
         "width": 760,
         "height": 600,
         "minWidth": 680,
