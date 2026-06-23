@@ -9,4 +9,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ command }) => ({
   plugins: [react()],
   base: command === 'build' ? '/untype/' : '/',
+  // 显式给空的内联 postcss 配置：本站不用 PostCSS/Tailwind。
+  // 否则 Vite 会向上目录搜索，误用到仓库根的 postcss.config.js（那是主 App 的 Tailwind 配置，
+  // 依赖 tailwindcss，本子项目没装 → 构建报「Cannot find module 'tailwindcss'」）。
+  css: { postcss: {} },
 }))
