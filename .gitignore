@@ -29,6 +29,8 @@ vite.config.ts.timestamp-*
 /代码审查报告.md
 /HANDOFF-*.md
 /asr-demo/
+# 发版/签名/公证运维手册（含账号配置步骤，本地保留即可）
+/scripts/UPDATE_SETUP.md
 
 # 开发期临时 mockup / 工具目录（本就未跟踪，显式 ignore 防误提交）
 /.serena/
