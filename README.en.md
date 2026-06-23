@@ -21,7 +21,7 @@ The AI is just a typist: it cleans up your speech, but **never adds, answers, or
 [![Release](https://img.shields.io/github/v/release/Win-Hao/untype?style=flat-square&label=release)](https://github.com/Win-Hao/untype/releases)
 [![Stars](https://img.shields.io/github/stars/Win-Hao/untype?style=flat-square)](https://github.com/Win-Hao/untype/stargazers)
 ![Platform](https://img.shields.io/badge/platform-macOS-111?style=flat-square)
-![Built with](https://img.shields.io/badge/built%20with-Tauri%202%20·%20Rust%20·%20Svelte-24C8DB?style=flat-square)
+![Built with](https://img.shields.io/badge/built%20with-Tauri%202%20·%20Rust%20·%20React-24C8DB?style=flat-square)
 
 [简体中文](README.md) · **English**
 
@@ -70,7 +70,7 @@ Tools like Typeless, Wispr Flow, and Superwhisper are polished, but most are **c
 
 ## Install
 
-> The macOS app is not Apple-signed / notarized (it's an open-source, self-built project). If Gatekeeper blocks the first launch: **right-click → "Open"**, or run `xattr -dr com.apple.quarantine /Applications/Untype.app` in the terminal.
+> Release builds are Apple-signed & notarized — just double-click to open (no right-click or `xattr` needed). If you build from source yourself and Gatekeeper blocks it, use **right-click → "Open"**.
 
 **Option 1 · Download a release:** grab the latest `.dmg` from [Releases](https://github.com/Win-Hao/untype/releases) and drag it into Applications.
 
@@ -87,7 +87,7 @@ On first launch the app requests **Microphone** and **Accessibility** permission
 
 ## Staying updated
 
-- **In-app update check:** Settings → "About" checks for the latest release and offers a one-click jump to the download page.
+- **In-app auto-update:** when a new version is available you're prompted on launch; click "Update now" to download, install, and relaunch in-app (or check manually in Settings → "About").
 - **Watch → Custom → ✅ Releases:** GitHub will email / notify you when a new version ships.
 - **RSS:** subscribe to `https://github.com/Win-Hao/untype/releases.atom`.
 
@@ -99,7 +99,7 @@ On first launch the app requests **Microphone** and **Accessibility** permission
 
 ## Development
 
-Built with **Tauri 2 + Rust + Svelte 5**.
+Built with **Tauri 2 + Rust + React 19 + Tailwind 4**.
 
 ```bash
 npm install
