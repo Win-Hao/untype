@@ -35,9 +35,7 @@ security find-identity -v -p codesigning | grep "Developer ID Application"
 2. 顶部切到「集成 Integrations」标签 →左侧「App Store Connect API」→「团队密钥 Team Keys」。
 3. 点「生成 API 密钥 (+)」,名字随便(如 `untype-notarize`),**访问权限选「Developer」**(公证够用),生成。
 4. **下载那个 `.p8` 文件**(只能下一次!),记下这一行的 **Key ID**(那串 10 位)。
-   Key id:KSUVYWZDHP
 5. 同页顶部能看到 **Issuer ID**(一长串 UUID),也记下。
-   Issuer id:b87832a1-3f43-4477-b9d4-655b8ab94eb1
 6. 把 .p8 放到安全位置并填进 env:
    ```bash
    mkdir -p ~/.appstoreconnect

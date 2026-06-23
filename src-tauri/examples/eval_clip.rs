@@ -44,9 +44,8 @@ fn read_key(creds: &str, name: &str) -> Option<String> {
 }
 
 fn main() {
-    let wav = std::env::args().nth(1).unwrap_or_else(|| {
-        "/Users/huangyonghao/Documents/内容创作/转转视频/6月18日.wav".to_string()
-    });
+    // 用法：cargo run --example eval_clip -- /path/to/audio.wav
+    let wav = std::env::args().nth(1).unwrap_or_else(|| "sample.wav".to_string());
     let wav = PathBuf::from(wav);
     println!("\n音频：{}", wav.display());
     let samples = read_wav_16k_mono(&wav);
