@@ -65,17 +65,24 @@ security find-identity -v -p codesigning | grep "Developer ID Application"
 # 2) (可选) 写更新说明,会进 release 和弹窗的「更新内容」
 echo "• 修复了 xxx\n• 新增 yyy" > RELEASE_NOTES.md
 
-# 3) 构建(签名 + 公证 + 产出 updater 产物;首次公证可能要几分钟)
+# 3) 先提交并推送代码 —— 务必在发版之前!
+#    release-mac.sh 用 gh 在「远端当前 HEAD」上打 tag,先 push 才能让 v0.x.y
+#    这个 tag 指向正确的提交;否则 tag 会指向旧代码(二进制虽对、但源码对不上)。
+git add -A && git commit -m "release: vX.Y.Z" && git push
+
+# 4) 构建(签名 + 公证 + 产出 updater 产物;公证要几分钟)
 bash scripts/build-mac.sh
 
-# 4) 生成 latest.json(更新清单)
+# 5) 生成 latest.json(更新清单)
 bash scripts/gen-latest-json.sh
 
-# 5) 发布到 GitHub Releases(需 gh CLI 已登录)
+# 6) 发布到 GitHub Releases(需 gh CLI 已登录)
 bash scripts/release-mac.sh
 ```
 
 发布后,装了旧版本的用户下次打开 app 约 3 秒后就会弹出更新提示。
+
+> 注意:发版必须是「正式 release」(非 prerelease/draft),否则 `releases/latest` 端点取不到 latest.json,更新检查会落空。`release-mac.sh` 默认就发正式版。
 
 ---
 
