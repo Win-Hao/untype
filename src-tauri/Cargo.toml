@@ -1,6 +1,6 @@
 [package]
 name = "tauri-app"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -20,6 +20,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "macos-private-api", "image-png"] }
 tauri-plugin-opener = "2"
+# 应用内自动更新：下载/安装/重启（配合前端 @tauri-apps/plugin-updater）
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sherpa-rs = "0.6.8"
@@ -41,4 +44,12 @@ rustfft = "6"
 [target.'cfg(target_os = "macos")'.dependencies]
 core-graphics = "0.25"
 core-foundation = "0.10"
+
+# 桌面应用优先优化体积而非极致性能（参考 cc-switch）
+[profile.release]
+codegen-units = 1   # 更好的优化（牺牲编译速度）
+lto = "thin"        # 链接时优化
+opt-level = "s"     # 优化体积
+panic = "unwind"
+strip = "symbols"   # 去符号，减小体积
 

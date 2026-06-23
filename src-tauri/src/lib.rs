@@ -530,62 +530,40 @@ fn stop_mic_monitor(state: tauri::State<AppState>) {
     state.mic_monitor.lock().unwrap().stop();
 }
 
-/// 应用内检查更新：查 GitHub 最新 release，与当前版本比对。只提醒 + 给下载页，
-/// 不自动下载替换（开源未签名，自动替换仍会被 Gatekeeper 拦）。
-/// 无 release / 网络错 / 解析失败都当作「无更新」静默返回，不打扰。
-#[derive(serde::Serialize)]
-struct UpdateInfo {
-    has_update: bool,
-    current: String,
-    latest: String,
-    url: String,
-}
-
-/// 语义版本比较：latest 是否 > current（按 `.` 分段比数字，缺位补 0、非数字段当 0）。
-fn version_gt(latest: &str, current: &str) -> bool {
-    let parse = |s: &str| -> Vec<u32> { s.split('.').map(|p| p.trim().parse().unwrap_or(0)).collect() };
-    let (a, b) = (parse(latest), parse(current));
-    for i in 0..a.len().max(b.len()) {
-        let (x, y) = (a.get(i).copied().unwrap_or(0), b.get(i).copied().unwrap_or(0));
-        if x != y {
-            return x > y;
-        }
-    }
-    false
-}
-
+/// 自动更新装完后的可靠重启：兜底 Tauri v2 在 macOS 上 relaunch() 的已知 bug
+/// （装好新包却没能重启、卡在旧版本）。spawn 一个脱离的 helper 轮询父进程退出，
+/// 父进程退出后再 `open -n` 重开新 .app；本进程随后 exit(0)。
+/// 必须轮询父进程退出：否则 single-instance/同名进程仍在，新进程会被判为重复实例而退出。
 #[tauri::command]
-fn check_update() -> UpdateInfo {
-    let current = env!("CARGO_PKG_VERSION").to_string();
-    let none = || UpdateInfo {
-        has_update: false,
-        current: env!("CARGO_PKG_VERSION").to_string(),
-        latest: env!("CARGO_PKG_VERSION").to_string(),
-        url: String::new(),
-    };
-    let agent = ureq::AgentBuilder::new()
-        .timeout_connect(std::time::Duration::from_secs(10))
-        .timeout_read(std::time::Duration::from_secs(10))
-        .build();
-    let resp = match agent
-        .get("https://api.github.com/repos/Win-Hao/untype/releases/latest")
-        .set("User-Agent", "Untype-update-check")
-        .set("Accept", "application/vnd.github+json")
-        .call()
-    {
-        Ok(r) => r,
-        Err(_) => return none(), // 404（无 release）/ 网络错 → 静默无更新
-    };
-    let json: serde_json::Value = match resp.into_json() {
-        Ok(j) => j,
-        Err(_) => return none(),
-    };
-    let latest = json["tag_name"].as_str().unwrap_or("").trim_start_matches('v').to_string();
-    let url = json["html_url"].as_str().unwrap_or("").to_string();
-    if latest.is_empty() {
-        return none();
-    }
-    UpdateInfo { has_update: version_gt(&latest, &current), current, latest, url }
+fn force_quit_and_relaunch(app: tauri::AppHandle) -> Result<(), String> {
+    let current_exe = std::env::current_exe().map_err(|e| format!("current_exe failed: {e}"))?;
+    let ppid = std::process::id();
+    let app_bundle = current_exe
+        .ancestors()
+        .find(|p| p.extension().and_then(|s| s.to_str()) == Some("app"))
+        .ok_or_else(|| "current_exe 祖先里没有 .app bundle".to_string())?;
+    let bundle_str = app_bundle.to_string_lossy();
+    // 单引号包裹 + 转义，安全塞进 sh -c
+    let escaped = format!("'{}'", bundle_str.replace('\'', "'\\''"));
+    let cmd = format!(
+        "i=0; while kill -0 {ppid} 2>/dev/null && [ $i -lt 100 ]; do sleep 0.1; i=$((i+1)); done; sleep 0.3; open -n {app}",
+        ppid = ppid,
+        app = escaped
+    );
+    std::process::Command::new("sh")
+        .arg("-c")
+        .arg(&cmd)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .map_err(|e| format!("spawn relaunch helper failed: {e}"))?;
+    // 给前端一点时间显示「重启中」，再退出本进程触发 helper 重开。
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        app.exit(0);
+    });
+    Ok(())
 }
 
 /// ASR 引擎配置（前端读写）：引擎选择 + 火山 / 阿里 BYOK 凭证 + 阿里模型。
@@ -698,6 +676,8 @@ fn request_accessibility() -> bool {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .on_window_event(|window, event| {
             if matches!(event, WindowEvent::CloseRequested { .. }) {
                 eprintln!("[DIAG] CloseRequested label={:?}", window.label());
@@ -749,9 +729,9 @@ pub fn run() {
             complete_onboarding,
             check_accessibility,
             request_accessibility,
-            check_update,
             reset_accessibility_tcc,
-            restart_app
+            restart_app,
+            force_quit_and_relaunch
         ])
         .setup(|app| {
             eprintln!("[DIAG] window labels = {:?}", app.webview_windows().keys().cloned().collect::<Vec<_>>());

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>capsule</title>
+    <style>
+      /* 透明胶囊窗：背景必须透明，否则圆角外会露出窗底色 */
+      html,
+      body {
+        background: transparent !important;
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/capsule/main.tsx"></script>
+  </body>
+</html>

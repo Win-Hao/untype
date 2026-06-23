@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ============================================================
    设计 token —— 颜色 / 圆角 / 阴影 / 字体集中定义，浅深色双主题
@@ -14,6 +16,7 @@
   /* 圆角 */
   --r-card: 12px;
   --r-control: 8px;
+  --radius: 8px; /* shadcn borderRadius 基准（= --r-control） */
 
   /* 表面与文字（浅色） */
   --bg: #f3f4f6;
