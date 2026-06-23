@@ -2,7 +2,7 @@
 export const GITHUB_URL = 'https://github.com/Win-Hao/untype'
 export const DOWNLOAD_URL = 'https://github.com/Win-Hao/untype/releases/latest'
 // 直接下载最新 DMG（Apple Silicon）。注意：URL 含版本号，发新版后需同步更新此处。
-export const DOWNLOAD_DMG = 'https://github.com/Win-Hao/untype/releases/download/v0.1.1/Untype_0.1.1_aarch64.dmg'
+export const DOWNLOAD_DMG = 'https://github.com/Win-Hao/untype/releases/download/v0.1.2/Untype_0.1.2_aarch64.dmg'
 export const CHANGELOG_URL = 'https://github.com/Win-Hao/untype/releases'
 export const ISSUES_URL = 'https://github.com/Win-Hao/untype/issues'
 export const PROFILE_URL = 'https://github.com/Win-Hao'

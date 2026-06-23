@@ -78,6 +78,10 @@ bash scripts/gen-latest-json.sh
 
 # 6) 发布到 GitHub Releases(需 gh CLI 已登录)
 bash scripts/release-mac.sh
+
+# 7) 更新官网下载直链 —— untype-react/src/lib/links.js 的 DOWNLOAD_DMG 改成新版本号
+#    （Hero/导航是直链、含版本号，不会自动更新；CTA 用的 DOWNLOAD_URL=releases/latest 会自动）
+#    改完 commit + push 会触发 Pages 自动部署。
 ```
 
 发布后,装了旧版本的用户下次打开 app 约 3 秒后就会弹出更新提示。
