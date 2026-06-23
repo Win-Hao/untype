@@ -639,7 +639,7 @@ fn reset_accessibility_tcc() {
 fn restart_app(app: tauri::AppHandle) {
     #[cfg(target_os = "macos")]
     if let Ok(exe) = std::env::current_exe() {
-        if let Some(app_path) = exe.ancestors().find(|p| p.extension().map_or(false, |e| e == "app")) {
+        if let Some(app_path) = exe.ancestors().find(|p| p.extension().is_some_and(|e| e == "app")) {
             let _ = std::process::Command::new("xattr").args(["-cr"]).arg(app_path).status();
         }
     }

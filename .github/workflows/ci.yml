@@ -46,10 +46,19 @@ jobs:
                 src-tauri/models/sense-voice/tokens.txt \
                 src-tauri/models/sense-voice/silero_vad.onnx
 
+      # tauri-build 还会校验 bundle.macOS.frameworks 的 dylib 路径存在（target/release/...）。
+      # CI 不做 release 打包、这些 dylib 不在 → build.rs 报「Library not found」。放占位空文件过
+      # 存在性校验即可：clippy 只做静态分析不链接，真实符号由 sherpa-rs-sys 的 link 路径提供。
+      - name: Stub bundled frameworks for tauri-build
+        run: |
+          mkdir -p src-tauri/target/release
+          touch src-tauri/target/release/libonnxruntime.1.17.1.dylib \
+                src-tauri/target/release/libsherpa-onnx-c-api.dylib
+
       - name: Install frontend deps
         run: npm ci
 
-      - name: Svelte check
+      - name: Type check (tsc)
         run: npm run check
 
       - name: Frontend build
