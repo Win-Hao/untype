@@ -22,7 +22,7 @@ export default function CTA() {
             </div>
             <p className="cta-note" data-reveal="">免费开源（MIT），已做 Apple 签名与公证，下载后双击即可直接打开。</p>
             <div className="cta-foot" data-reveal="">
-              <span className="stamp">免费试用</span>
+              <span className="stamp">免费开源</span>
               <span>macOS 12+ · Apple Silicon</span>
               <span>本地优先 · 隐私至上</span>
             </div>
