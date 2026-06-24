@@ -62,6 +62,19 @@ jobs:
       - name: Install frontend deps
         run: npm ci
 
+      # sherpa-rs-sys 构建时把 DLL 旁置到 target/release，但命中 rust-cache 后该 build script 不再运行、
+      # 且 rust-cache 会裁掉 target 里这些「非 cargo 产物」的旁置文件 → 缓存命中的构建里 DLL 会缺失，
+      # tauri-build 校验 resources 即失败。从可靠缓存的 sherpa-rs 缓存目录把 DLL 兜底拷回 target/release。
+      # 全新构建时缓存目录还空、此步为空操作，DLL 由随后的 tauri build 触发 sherpa-rs-sys 旁置。
+      - name: Ensure native DLLs in target/release
+        run: |
+          mkdir -p src-tauri/target/release
+          SRC="$HOME/AppData/Local/sherpa-rs"
+          if [ -d "$SRC" ]; then
+            find "$SRC" -name '*.dll' -path '*/bin/*' -exec cp -f {} src-tauri/target/release/ \; 2>/dev/null || true
+          fi
+          ls -la src-tauri/target/release/*.dll 2>/dev/null || echo "(暂无 DLL；全新构建将由 tauri build 旁置)"
+
       # tauri build 会自动合并 tauri.windows.conf.json（DLL/模型 resources + createUpdaterArtifacts:false）。
       # 只产 NSIS，跳过 MSI（避免 WiX 处理 228MB 资源的额外耗时）。前端构建由 beforeBuildCommand 触发。
       - name: Build NSIS installer
