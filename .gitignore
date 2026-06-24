@@ -20,21 +20,14 @@ vite.config.ts.timestamp-*
 *.env
 !.env.example
 
-# ── 内部开发笔记 / 交接文档（不进开源仓库；本地保留）──
-/DESIGN.md
-/STATUS.md
-/NEXT_STEPS.md
-/UI-待办.md
-/ASR-评测结果.md
-/代码审查报告.md
-/HANDOFF-*.md
-/asr-demo/
+# ── 内部开发笔记 / 交接文档 + ASR 研究 demo（不进开源仓库；本地保留）──
+# DESIGN/STATUS/NEXT_STEPS/UI-待办/ASR-评测结果/代码审查报告/HANDOFF-*、asr-demo/ 均已收进 notes/
+/notes/
 # 发版/签名/公证运维手册（含账号配置步骤，本地保留即可）
 /scripts/UPDATE_SETUP.md
 
 # 开发期临时 mockup / 工具目录（本就未跟踪，显式 ignore 防误提交）
 /.serena/
-/untype-app-icon.html
-/voice-settings-glass-2.html
-/dmg-background.html
+# HTML 设计原型（untype-app-icon / voice-settings-glass-2 等）已收进 mockups/
+/mockups/
 scripts/signing.local.env

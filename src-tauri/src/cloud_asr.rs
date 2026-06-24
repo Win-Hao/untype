@@ -1,7 +1,7 @@
 //! 云端语音识别（WebSocket）：火山豆包「大模型流式语音识别」 + 阿里 DashScope（Qwen3-ASR-Flash / Fun-ASR）。
 //!
 //! BYOK 可选引擎——默认仍走本地 SenseVoice，用户在设置里切到云端并填对应厂商 API Key 后生效。
-//! 火山协议见 `asr-demo/火山-doubao-流式ASR-协议参考.md`（4 字节头 + payload_size(大端) + gzip 负载）。
+//! 火山协议见 `notes/asr-demo/火山-doubao-流式ASR-协议参考.md`（4 字节头 + payload_size(大端) + gzip 负载）。
 //! 词典软词作为热词随请求传入（解码时偏置，仅火山支持），ITN/标点由云端开启（输出比本地更干净）。
 
 use std::io::{Read, Write};

@@ -1,4 +1,4 @@
-/* 复刻 untype-app-icon.html 的图标设计（squircle + 波形→基线→光标 连续笔画 + 单一蓝光标），
+/* 复刻 mockups/untype-app-icon.html 的图标设计（squircle + 波形→基线→光标 连续笔画 + 单一蓝光标），
    把 OKLCH 转成 sRGB hex/rgba，输出可移植的独立 SVG（浅/深/小尺寸简化标记）。 */
 const fs = require("fs");
 const path = require("path");
