@@ -6,7 +6,7 @@
 ## 快速开始
 
 ```bash
-cd untype-react
+cd site
 npm install      # 安装 react / react-dom / gsap / vite
 npm run dev      # 本地开发，默认 http://localhost:5173
 npm run build    # 产出静态站到 dist/，可直接部署到任意静态托管
@@ -23,7 +23,7 @@ npm run preview  # 本地预览构建产物
 ## 目录结构
 
 ```
-untype-react/
+site/
 ├── index.html                # Vite 入口
 ├── vite.config.js
 ├── public/assets/            # 10 张 Seedream 生成的拼贴图（hero/about/...）
@@ -49,7 +49,7 @@ untype-react/
 
 ## 部署
 
-官网通过 **GitHub Pages + Actions** 发布：推送到 `main` 且改动落在 `untype-react/**` 时，
+官网通过 **GitHub Pages + Actions** 发布：推送到 `main` 且改动落在 `site/**` 时，
 `.github/workflows/deploy-site.yml` 会自动 `npm ci && npm run build` 并部署到
 <https://win-hao.github.io/untype/>。生产构建的 `base` 为 `/untype/`（见 `vite.config.js`，
 开发态仍是 `/`）。

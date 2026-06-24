@@ -110,6 +110,10 @@ On the first build, `build.rs` automatically fetches the local recognition model
 
 Checks: frontend `npm run check`; for Rust, run `cargo check` / `cargo clippy` in `src-tauri/`.
 
+## Website
+
+Live: <https://win-hao.github.io/untype/>. Source in [`site/`](site/) — a standalone Vite + React landing page, built independently from the app (no shared dependencies). Any change under `site/**` is auto-built and published to GitHub Pages by [`deploy-site.yml`](.github/workflows/deploy-site.yml), without triggering the app's CI.
+
 ## Philosophy
 
 **Faithful dictation**, like a system input method — transcription should be fast, accurate, and true to what you said. The AI is a typist, not an author.

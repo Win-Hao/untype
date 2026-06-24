@@ -3,7 +3,14 @@ name: CI
 on:
   push:
     branches: [main]
+    # 官网（site/）有独立的 deploy-site.yml；纯文档（*.md）不影响 App 构建/测试 → 跳过，省 runner
+    paths-ignore:
+      - 'site/**'
+      - '**/*.md'
   pull_request:
+    paths-ignore:
+      - 'site/**'
+      - '**/*.md'
 
 # 同一分支/PR 只保留最新一次在跑，省 runner
 concurrency:

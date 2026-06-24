@@ -110,6 +110,10 @@ npm run tauri dev        # 开发运行（首次自动下载本地 ASR 模型 ~2
 
 验证：前端 `npm run check`；Rust 在 `src-tauri/` 跑 `cargo check` / `cargo clippy`。
 
+## 官网（落地页）
+
+线上：<https://win-hao.github.io/untype/>。源码在 [`site/`](site/)——独立的 Vite + React 落地页，与 App 各自独立构建（不共用依赖）。改动落在 `site/**` 即由 [`deploy-site.yml`](.github/workflows/deploy-site.yml) 自动构建并发布到 GitHub Pages，不触发 App 的 CI。
+
 ## 理念
 
 像系统语音输入法那样的**忠实听写**——转写要快、要准、要忠于你说的话。AI 是打字员，不是作者。
