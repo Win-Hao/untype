@@ -36,4 +36,24 @@ else
 fi
 echo "→ 更新签名: ${TAURI_SIGNING_PRIVATE_KEY:+已就绪}${TAURI_SIGNING_PRIVATE_KEY:-(未设, 不产出 updater 产物)}"
 
-exec npm run tauri build "$@"
+npm run tauri build "$@"
+
+# Tauri 只公证 .app、不公证 .dmg 容器——下载时 quarantine 标记加在 DMG 上，
+# 不公证 DMG 会让下载者双击 DMG 被 Gatekeeper 拦。这里补上对 .dmg 的公证 + staple。
+notarize_dmg() {
+  local dmg="$1"
+  echo "→ 公证 DMG: $(basename "$dmg")"
+  if [ -n "${APPLE_API_KEY:-}" ] && [ -n "${APPLE_API_ISSUER:-}" ] && [ -n "${APPLE_API_KEY_PATH:-}" ]; then
+    xcrun notarytool submit "$dmg" --key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER" --wait
+  elif [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_PASSWORD:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ]; then
+    xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+  else
+    echo "  （未配公证凭据，跳过 DMG 公证）"; return 0
+  fi
+  xcrun stapler staple "$dmg"
+}
+
+shopt -s nullglob
+for dmg in src-tauri/target/release/bundle/dmg/*.dmg; do
+  notarize_dmg "$dmg"
+done
