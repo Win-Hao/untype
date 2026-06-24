@@ -6,8 +6,13 @@
 //! CGEventTap 那层只负责把 CGEvent 翻译成 (keycode, 事件种类) 喂进来。
 
 use std::collections::HashSet;
+// Arc/Mutex/AtomicBool/Sender 只被 macOS 与其它平台的 spawn 签名用到；Windows 的 spawn 在
+// windows_impl 模块里另有自己的 use，故顶层在 Windows 上不需要（否则报 unused import）。
+#[cfg(not(target_os = "windows"))]
 use std::sync::atomic::AtomicBool;
+#[cfg(not(target_os = "windows"))]
 use std::sync::mpsc::Sender;
+#[cfg(not(target_os = "windows"))]
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -203,6 +208,9 @@ fn mods_match(m: &ModSet, p: &HashSet<i64>) -> bool {
 pub enum EventKind {
     KeyDown,
     KeyUp,
+    // macOS 用 FlagsChanged 上报修饰键按放；Windows 走普通 KeyDown/KeyUp、从不构造此变体。
+    // 非测试的 lib 构建里它在 Windows 上「永不构造」会触发 dead_code，显式放行。
+    #[allow(dead_code)]
     FlagsChanged,
 }
 
