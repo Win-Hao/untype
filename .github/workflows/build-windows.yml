@@ -1,0 +1,101 @@
+name: Build Windows installer
+
+# 在 windows-latest 上构建 NSIS 安装包（内置本地 SenseVoice 模型 + sherpa-onnx / onnxruntime DLL）。
+# - release published：自动把 Windows 安装包附加到该 release。
+# - workflow_dispatch：手动构建；填 tag 则附加到对应 release，留空则只产出可下载的 artifact（便于验证）。
+# Windows 不做应用内自更新（latest.json 只含 darwin-aarch64），故 tauri.windows.conf.json 里
+# createUpdaterArtifacts=false，免去更新签名私钥。
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要附加 Windows 安装包的 release tag（如 v0.1.2）；留空=只产出 artifact，不上传 release'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-windows-${{ github.event.release.tag_name || inputs.tag || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          # sherpa-rs-sys 把预编译的 sherpa-onnx + onnxruntime 缓存在 %LOCALAPPDATA%\sherpa-rs，
+          # 命中后不重下；rust-cache 默认只缓存 target，故一并缓存它。
+          cache-directories: ~/AppData/Local/sherpa-rs
+
+      # 本地 ASR 模型（~228MB，不入库）：用仓库脚本下载，按脚本内容做缓存键。
+      # fetch-models.sh 幂等：命中缓存即跳过下载。windows-latest 自带 Git Bash + curl。
+      - name: Cache ASR models
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/models/sense-voice
+          key: sense-voice-models-${{ hashFiles('scripts/fetch-models.sh') }}
+
+      - name: Fetch ASR models
+        run: bash scripts/fetch-models.sh
+
+      - name: Install frontend deps
+        run: npm ci
+
+      # tauri build 会自动合并 tauri.windows.conf.json（DLL/模型 resources + createUpdaterArtifacts:false）。
+      # 只产 NSIS，跳过 MSI（避免 WiX 处理 228MB 资源的额外耗时）。前端构建由 beforeBuildCommand 触发。
+      - name: Build NSIS installer
+        run: npm run tauri -- build --bundles nsis
+
+      # sherpa 动态链接：确认 onnxruntime.dll / sherpa-onnx-c-api.dll 已被构建落到 target/release，
+      # 它们经 resources 打进安装包、与 exe 同目录，缺失会让 app 启动即报找不到 DLL。
+      - name: Verify native DLLs were produced
+        run: |
+          echo "DLLs in target/release:"
+          ls -la src-tauri/target/release/*.dll
+          test -f src-tauri/target/release/onnxruntime.dll || { echo '::error::onnxruntime.dll 缺失'; exit 1; }
+          test -f src-tauri/target/release/sherpa-onnx-c-api.dll || { echo '::error::sherpa-onnx-c-api.dll 缺失'; exit 1; }
+
+      - name: Locate installer
+        id: find
+        run: |
+          exe=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe | head -1)
+          echo "exe=$exe" >> "$GITHUB_OUTPUT"
+          echo "installer: $exe"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: untype-windows-nsis
+          path: ${{ steps.find.outputs.exe }}
+          if-no-files-found: error
+
+      # 有 tag 时（release 发布、或手动填了 tag）附加到该 release。
+      - name: Attach installer to release
+        if: ${{ github.event.release.tag_name != '' || inputs.tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          echo "uploading ${{ steps.find.outputs.exe }} -> $TAG"
+          gh release upload "$TAG" "${{ steps.find.outputs.exe }}" --repo "$GITHUB_REPOSITORY" --clobber

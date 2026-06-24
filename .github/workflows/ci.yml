@@ -19,8 +19,16 @@ concurrency:
 
 jobs:
   check:
-    name: Check · Test (macOS)
-    runs-on: macos-latest
+    name: Check · Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        # 让各步骤的 bash 脚本在 windows-latest 上也走 Git Bash（mkdir -p / touch / find / cp 等通用）
+        shell: bash
     steps:
       - uses: actions/checkout@v7
 
@@ -41,8 +49,10 @@ jobs:
           workspaces: src-tauri
           prefix-key: v2
           # sherpa-rs 把 sherpa-onnx + onnxruntime 预编译库缓存在这里；rust-cache 默认只存 target，
-          # 命中后 sherpa-rs-sys 不重新下载 → test 链接二进制会 onnxruntime not found，故一并缓存。
-          cache-directories: ~/Library/Caches/sherpa-rs
+          # 命中后 sherpa-rs-sys 不重新下载。mac 与 Windows 的缓存目录不同，都列上（不存在的会被忽略）。
+          cache-directories: |
+            ~/Library/Caches/sherpa-rs
+            ~/AppData/Local/sherpa-rs
 
       # tauri-build 的 build.rs 会校验 bundle.resources 路径存在；真实模型是 GB 级、不入库。
       # CI 只验证代码正确性（单测不加载模型，#[ignore] 集成测试才加载），放占位空文件过校验即可。
@@ -53,14 +63,23 @@ jobs:
                 src-tauri/models/sense-voice/tokens.txt \
                 src-tauri/models/sense-voice/silero_vad.onnx
 
-      # tauri-build 还会校验 bundle.macOS.frameworks 的 dylib 路径存在（target/release/...）。
-      # CI 不做 release 打包、这些 dylib 不在 → build.rs 报「Library not found」。放占位空文件过
-      # 存在性校验即可：clippy 只做静态分析不链接，真实符号由 sherpa-rs-sys 的 link 路径提供。
-      - name: Stub bundled frameworks for tauri-build
+      # macOS：tauri-build 还会校验 bundle.macOS.frameworks 的 dylib 路径存在（target/release/...）。
+      # CI 不做 release 打包、这些 dylib 不在 → 放占位空文件过存在性校验（clippy 只静态分析不链接）。
+      - name: Stub bundled frameworks for tauri-build (macOS)
+        if: runner.os == 'macOS'
         run: |
           mkdir -p src-tauri/target/release
           touch src-tauri/target/release/libonnxruntime.1.17.1.dylib \
                 src-tauri/target/release/libsherpa-onnx-c-api.dylib
+
+      # Windows：tauri.windows.conf.json 把 onnxruntime.dll / sherpa-onnx-c-api.dll 列进 resources，
+      # debug 的 clippy 不会把它们落到 target/release → 放占位空文件过存在性校验（真包构建见 build-windows.yml）。
+      - name: Stub native DLLs for tauri-build (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p src-tauri/target/release
+          touch src-tauri/target/release/onnxruntime.dll \
+                src-tauri/target/release/sherpa-onnx-c-api.dll
 
       - name: Install frontend deps
         run: npm ci
@@ -74,7 +93,10 @@ jobs:
       - name: Clippy (deny warnings)
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
-      - name: Rust tests
+      # 单测是平台无关的纯逻辑（热键 Matcher 等），在 macOS 上跑即可；clippy --all-targets 已在
+      # Windows 上编译过测试代码与 Windows 钩子。Windows 上跑 test 还要处理 DLL 装载，省去这层脆弱。
+      - name: Rust tests (macOS)
+        if: runner.os == 'macOS'
         run: |
           # rust-cache 恢复 target 后，sherpa-rs 的 onnxruntime dylib 不在 dyld 搜索路径里
           # （它原本装在 ~/Library/Caches/sherpa-rs），运行 test 二进制会 dyld 找不到 → SIGABRT。
