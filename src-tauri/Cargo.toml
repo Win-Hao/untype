@@ -32,7 +32,6 @@ enigo = "0.6.1"
 ureq = { version = "2", features = ["json"] }
 pinyin = { version = "0.11.0", features = ["plain"] }
 arboard = { version = "3.6.1", default-features = false }
-macos-accessibility-client = "0.0.2"
 # 云端 ASR：WebSocket 流式（火山 gzip 二进制协议 / 阿里 JSON + base64）
 tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
 flate2 = "1"
@@ -44,6 +43,17 @@ rustfft = "6"
 [target.'cfg(target_os = "macos")'.dependencies]
 core-graphics = "0.25"
 core-foundation = "0.10"
+# 文字注入用的「辅助功能」权限查询，仅 macOS 有此概念（Windows 用 SendInput 无需授权）
+macos-accessibility-client = "0.0.2"
+
+# 单键全局热键：Windows 用 WH_KEYBOARD_LL 低级键盘钩子监听（区分左右修饰键、可吞回车/Esc）
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_System_LibraryLoader",
+] }
 
 # 桌面应用优先优化体积而非极致性能（参考 cc-switch）
 [profile.release]

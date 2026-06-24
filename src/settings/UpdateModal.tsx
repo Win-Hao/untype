@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, ArrowRight, CheckCircle, Download, RotateCw, Sparkles, X } from "lucide-react";
 import type { UpdateState } from "@/lib/useUpdater";
+import { IS_MAC } from "@/lib/platform";
 
 type Props = {
   open: boolean;
@@ -128,7 +129,7 @@ export function UpdateModal({ open, state, onUpdate, onLater, onSkip }: Props) {
                   更新已下载完成
                 </div>
                 <p className="mt-1 pl-6 text-[11px] text-[color:var(--fg-3)]">
-                  请手动退出 Untype（⌘Q）后重新打开即可用上新版本。
+                  请手动退出 Untype（{IS_MAC ? "⌘Q" : "Alt+F4"}）后重新打开即可用上新版本。
                 </p>
               </div>
             )}

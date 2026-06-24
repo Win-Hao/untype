@@ -420,13 +420,207 @@ pub fn spawn(
     });
 }
 
-#[cfg(not(target_os = "macos"))]
+/// Windows：用 `WH_KEYBOARD_LL` 低级键盘钩子做全局监听。把 Windows 虚拟键码翻译成
+/// 与 macOS 同一套 keycode（`token_to_keycode` 的命名空间），下游 `Matcher` / `parse_spec`
+/// 原样复用、零改动。修饰键在 Windows 走普通 KeyDown/KeyUp（非 macOS 的 FlagsChanged），
+/// `Matcher` 同样能处理。免按键录音中按下的回车/Esc 通过「钩子返回 1」吞掉、不传给前台。
+///
+/// 低级钩子要求安装线程有消息循环，故在独立线程里 SetWindowsHookEx + GetMessage 泵。
+/// 回调用 `extern "system"` 且无用户指针，状态经 thread-local 在本线程内共享（钩子回调
+/// 与消息泵同线程，安全）。回调只做读锁 + 纯逻辑 + 非阻塞 send，足够快，不触发钩子超时。
+#[cfg(target_os = "windows")]
+mod windows_impl {
+    use super::{control_action, control_outcome, Bindings, EventKind, KeyAction, Matcher};
+    use std::cell::RefCell;
+    use std::collections::HashSet;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::mpsc::Sender;
+    use std::sync::{Arc, Mutex};
+    use std::time::Instant;
+
+    use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
+    use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, TranslateMessage,
+        UnhookWindowsHookEx, HC_ACTION, KBDLLHOOKSTRUCT, LLKHF_EXTENDED, MSG, WH_KEYBOARD_LL,
+        WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP,
+    };
+
+    /// 钩子回调线程内的共享状态。
+    struct HookCtx {
+        bindings: Arc<Mutex<Bindings>>,
+        toggle_recording: Arc<AtomicBool>,
+        tx: Sender<KeyAction>,
+        matcher: Matcher,
+        /// 当前正吞着的控制键 keycode（None = 没在吞）；与 macOS 版同义。
+        swallowing: Option<i64>,
+        /// 已按下的键集合：用于过滤系统长按重复（Windows 按住会重复发 KeyDown）。
+        pressed: HashSet<i64>,
+    }
+
+    thread_local! {
+        static HOOK_CTX: RefCell<Option<HookCtx>> = const { RefCell::new(None) };
+    }
+
+    /// Windows 虚拟键码 → 与 macOS 一致的 keycode（`token_to_keycode` 命名空间）。
+    /// 低级钩子直接给出区分左右的修饰键 VK（0xA0..0xA5 / 0x5B,0x5C），故能区分左右。
+    /// 不认识的键返回 None（照常放行、不参与热键）。
+    fn vk_to_keycode(vk: u16, extended: bool) -> Option<i64> {
+        // 字母 A..Z（VK 0x41..0x5A）→ macOS keycode，与 token_to_keycode 一致。
+        const LETTER_MAC: [i64; 26] = [
+            0, 11, 8, 2, 14, 3, 5, 4, 34, 38, 40, 37, 46, 45, 31, 35, 12, 15, 1, 17, 32, 9, 13, 7,
+            16, 6,
+        ];
+        // 数字 0..9（VK 0x30..0x39）→ macOS keycode。
+        const DIGIT_MAC: [i64; 10] = [29, 18, 19, 20, 21, 23, 22, 26, 28, 25];
+        Some(match vk {
+            // 修饰键（区分左右）
+            0xA0 => 56, // L Shift
+            0xA1 => 60, // R Shift
+            0xA2 => 59, // L Control
+            0xA3 => 62, // R Control
+            0xA4 => 58, // L Alt(Menu)
+            0xA5 => 61, // R Alt(Menu)
+            0x5B => 55, // L Win → Meta
+            0x5C => 54, // R Win → Meta
+            // 功能键 F1..F20（VK 0x70..0x83）
+            0x70 => 122, 0x71 => 120, 0x72 => 99, 0x73 => 118, 0x74 => 96, 0x75 => 97,
+            0x76 => 98, 0x77 => 100, 0x78 => 101, 0x79 => 109, 0x7A => 103, 0x7B => 111,
+            0x7C => 105, 0x7D => 107, 0x7E => 113, 0x7F => 106, 0x80 => 64, 0x81 => 79,
+            0x82 => 80, 0x83 => 90,
+            // 字母 / 数字 / 空格
+            0x41..=0x5A => LETTER_MAC[(vk - 0x41) as usize],
+            0x30..=0x39 => DIGIT_MAC[(vk - 0x30) as usize],
+            0x20 => 49, // Space
+            // 控制键（录音中可被吞）：回车确认 / Esc 取消。小键盘回车带 extended 标志。
+            0x0D => if extended { 76 } else { 36 },
+            0x1B => 53, // Esc
+            _ => return None,
+        })
+    }
+
+    /// 处理一个键消息，返回是否吞掉（true = 不放给前台）。
+    fn process(ctx: &mut HookCtx, msg: u32, vk: u16, extended: bool) -> bool {
+        let down = msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN;
+        let up = msg == WM_KEYUP || msg == WM_SYSKEYUP;
+        if !down && !up {
+            return false;
+        }
+        let Some(keycode) = vk_to_keycode(vk, extended) else {
+            return false; // 不关心的键：放行
+        };
+        let kind = if down { EventKind::KeyDown } else { EventKind::KeyUp };
+
+        // 控制键（回车确认 / Esc 取消）：免按键录音中拦截，不放给前台 app。
+        if let Some(action) = control_action(keycode) {
+            let swallowing_this = ctx.swallowing == Some(keycode);
+            let o = control_outcome(
+                kind,
+                ctx.toggle_recording.load(Ordering::SeqCst),
+                swallowing_this,
+            );
+            if o.swallow {
+                ctx.swallowing = Some(keycode);
+            } else if swallowing_this {
+                ctx.swallowing = None;
+            }
+            if o.emit {
+                let _ = ctx.tx.send(action);
+            }
+            return o.drop;
+        }
+
+        // 其余键：过滤系统长按重复（按住会重复发 KeyDown），与 macOS 忽略 autorepeat 等价。
+        match kind {
+            EventKind::KeyDown => {
+                if !ctx.pressed.insert(keycode) {
+                    return false; // 已按下 → 系统重复，忽略不重复触发，照常放行
+                }
+            }
+            EventKind::KeyUp => {
+                ctx.pressed.remove(&keycode);
+            }
+            EventKind::FlagsChanged => {}
+        }
+        let (hold, toggle) = {
+            let b = ctx.bindings.lock().unwrap();
+            (b.hold.clone(), b.toggle.clone())
+        };
+        if let Some((trigger, ev)) =
+            ctx.matcher
+                .on_event(kind, keycode, Instant::now(), hold.as_ref(), toggle.as_ref())
+        {
+            let _ = ctx.tx.send(KeyAction::Hotkey(trigger, ev));
+        }
+        false // 热键只观察不吞，照常放行
+    }
+
+    unsafe extern "system" fn ll_keyboard_proc(
+        code: i32,
+        wparam: WPARAM,
+        lparam: LPARAM,
+    ) -> LRESULT {
+        if code == HC_ACTION as i32 {
+            let kb = &*(lparam as *const KBDLLHOOKSTRUCT);
+            let vk = kb.vkCode as u16;
+            let extended = (kb.flags & LLKHF_EXTENDED) != 0;
+            let msg = wparam as u32;
+            let swallow = HOOK_CTX.with(|c| {
+                c.borrow_mut()
+                    .as_mut()
+                    .map(|ctx| process(ctx, msg, vk, extended))
+                    .unwrap_or(false)
+            });
+            if swallow {
+                return 1;
+            }
+        }
+        CallNextHookEx(std::ptr::null_mut(), code, wparam, lparam)
+    }
+
+    pub fn spawn(
+        bindings: Arc<Mutex<Bindings>>,
+        toggle_recording: Arc<AtomicBool>,
+        tx: Sender<KeyAction>,
+    ) {
+        std::thread::spawn(move || unsafe {
+            HOOK_CTX.with(|c| {
+                *c.borrow_mut() = Some(HookCtx {
+                    bindings,
+                    toggle_recording,
+                    tx,
+                    matcher: Matcher::new(),
+                    swallowing: None,
+                    pressed: HashSet::new(),
+                });
+            });
+            let hmod = GetModuleHandleW(std::ptr::null());
+            let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(ll_keyboard_proc), hmod, 0);
+            if hook.is_null() {
+                eprintln!("SetWindowsHookExW 失败：全局热键不可用");
+                return;
+            }
+            // 低级键盘钩子要求安装线程有消息循环，否则收不到回调。
+            let mut msg: MSG = std::mem::zeroed();
+            while GetMessageW(&mut msg, std::ptr::null_mut(), 0, 0) > 0 {
+                TranslateMessage(&msg);
+                DispatchMessageW(&msg);
+            }
+            UnhookWindowsHookEx(hook);
+        });
+    }
+}
+
+#[cfg(target_os = "windows")]
+pub use windows_impl::spawn;
+
+/// 其它平台（如 Linux）：暂为占位，不监听全局键。
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 pub fn spawn(
     _bindings: Arc<Mutex<Bindings>>,
     _toggle_recording: Arc<AtomicBool>,
     _tx: Sender<KeyAction>,
 ) {
-    // TODO(Phase 4): Windows 用低级键盘钩子（SetWindowsHookEx）实现单键 / 区分左右。
 }
 
 #[cfg(test)]

@@ -3,7 +3,10 @@
 // 单键、单修饰键区分左右、组合键；逻辑与原 Svelte 版一致。
 // ============================================================
 
-const SIDE_SYMBOL: Record<string, string> = {
+import { IS_MAC } from "./platform";
+
+// macOS 用符号（⌘⌃⌥⇧），Windows 用单词（Win/Ctrl/Alt/Shift）。区分左右的前缀保留 左/右。
+const SIDE_SYMBOL_MAC: Record<string, string> = {
   MetaLeft: "左⌘",
   MetaRight: "右⌘",
   ControlLeft: "左⌃",
@@ -13,8 +16,19 @@ const SIDE_SYMBOL: Record<string, string> = {
   ShiftLeft: "左⇧",
   ShiftRight: "右⇧",
 };
+const SIDE_SYMBOL_WIN: Record<string, string> = {
+  MetaLeft: "左Win",
+  MetaRight: "右Win",
+  ControlLeft: "左Ctrl",
+  ControlRight: "右Ctrl",
+  AltLeft: "左Alt",
+  AltRight: "右Alt",
+  ShiftLeft: "左Shift",
+  ShiftRight: "右Shift",
+};
+const SIDE_SYMBOL: Record<string, string> = IS_MAC ? SIDE_SYMBOL_MAC : SIDE_SYMBOL_WIN;
 
-const COMBO_MOD: Record<string, string> = {
+const COMBO_MOD_MAC: Record<string, string> = {
   meta: "⌘",
   command: "⌘",
   cmd: "⌘",
@@ -25,6 +39,18 @@ const COMBO_MOD: Record<string, string> = {
   option: "⌥",
   shift: "⇧",
 };
+const COMBO_MOD_WIN: Record<string, string> = {
+  meta: "Win",
+  command: "Win",
+  cmd: "Win",
+  super: "Win",
+  control: "Ctrl",
+  ctrl: "Ctrl",
+  alt: "Alt",
+  option: "Alt",
+  shift: "Shift",
+};
+const COMBO_MOD: Record<string, string> = IS_MAC ? COMBO_MOD_MAC : COMBO_MOD_WIN;
 
 function tokenPretty(t: string): string {
   if (SIDE_SYMBOL[t]) return SIDE_SYMBOL[t];
@@ -35,10 +61,12 @@ function tokenPretty(t: string): string {
   return t; // F1–F20 / Space 等原样
 }
 
-/** 加速器字符串 → 好看的符号（如 "AltRight"→"右⌥"，"Alt+Space"→"⌥Space"） */
+/** 加速器字符串 → 好看的符号（mac: "AltRight"→"右⌥"、"Alt+Space"→"⌥Space"；
+ *  Windows: "AltRight"→"右Alt"、"Control+Shift+KeyK"→"Ctrl+Shift+K"）。
+ *  Windows 用单词，组合键以 "+" 连接才不挤成一团；mac 用符号，空串连接更紧凑。 */
 export function prettyShortcut(accel: string): string {
   if (!accel) return "未设置";
-  return accel.split("+").map(tokenPretty).join("");
+  return accel.split("+").map(tokenPretty).join(IS_MAC ? "" : "+");
 }
 
 /** 浏览器 KeyboardEvent.code → 后端认识的主键 token（仅放行确定能用的） */

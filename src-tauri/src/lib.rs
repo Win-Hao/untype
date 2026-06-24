@@ -534,6 +534,7 @@ fn stop_mic_monitor(state: tauri::State<AppState>) {
 /// （装好新包却没能重启、卡在旧版本）。spawn 一个脱离的 helper 轮询父进程退出，
 /// 父进程退出后再 `open -n` 重开新 .app；本进程随后 exit(0)。
 /// 必须轮询父进程退出：否则 single-instance/同名进程仍在，新进程会被判为重复实例而退出。
+#[cfg(target_os = "macos")]
 #[tauri::command]
 fn force_quit_and_relaunch(app: tauri::AppHandle) -> Result<(), String> {
     let current_exe = std::env::current_exe().map_err(|e| format!("current_exe failed: {e}"))?;
@@ -563,6 +564,16 @@ fn force_quit_and_relaunch(app: tauri::AppHandle) -> Result<(), String> {
         std::thread::sleep(std::time::Duration::from_millis(200));
         app.exit(0);
     });
+    Ok(())
+}
+
+/// 非 macOS（Windows）：上面的 .app + open -n 重启逻辑是 macOS 专属。Windows 上 updater
+/// 是惰性的（latest.json 只含 darwin），正常不会调到这里；兜底直接走 Tauri 的进程重启。
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+fn force_quit_and_relaunch(app: tauri::AppHandle) -> Result<(), String> {
+    app.restart();
+    #[allow(unreachable_code)]
     Ok(())
 }
 
@@ -738,10 +749,14 @@ pub fn run() {
             // ---- 系统托盘 ----
             let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&quit])?;
+            // 托盘图标：macOS 菜单栏用单色模板 glyph（按浅/深自动着色），不用近无色的主图标；
+            // Windows 任务栏托盘里模板 glyph 几乎看不见，改用彩色 app 图标。
+            #[cfg(target_os = "macos")]
+            let tray_icon = tauri::include_image!("icons/tray.png");
+            #[cfg(not(target_os = "macos"))]
+            let tray_icon = tauri::include_image!("icons/32x32.png");
             TrayIconBuilder::with_id(TRAY_ID)
-                // 菜单栏用单色模板 glyph（简化标记），macOS 按浅/深菜单栏自动着色；
-                // 不用近无色的 app 主图标——那个在菜单栏里几乎看不见。
-                .icon(tauri::include_image!("icons/tray.png"))
+                .icon(tray_icon)
                 .icon_as_template(true)
                 .menu(&menu)
                 // 左键点击不弹菜单，而是唤起主窗口；右键仍弹菜单（含「退出」）

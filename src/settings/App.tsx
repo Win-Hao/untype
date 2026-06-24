@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useTauriEvent } from "@/lib/useTauriEvent";
 import { MOD_KEYS, mainKeyToken, prettyShortcut } from "@/lib/hotkey";
+import { IS_MAC, PASTE_HINT } from "@/lib/platform";
 import * as ipc from "@/lib/ipc";
 import type {
   LearnedPair,
@@ -702,7 +703,7 @@ export default function App() {
   if (onboarding) {
     return (
       <main className="flex h-screen flex-col bg-[var(--bg)] text-[color:var(--fg)]">
-        <div data-tauri-drag-region className="h-10 shrink-0" />
+        <div data-tauri-drag-region className={cn("shrink-0", IS_MAC ? "h-10" : "h-3")} />
         <div className="flex flex-1 items-center justify-center overflow-y-auto px-6 pb-8">
           <div className="w-full max-w-md space-y-5">
             <div>
@@ -736,7 +737,7 @@ export default function App() {
                 )}
               </div>
               <p className="mt-1 text-xs leading-relaxed text-[color:var(--fg-2)]">
-                用于把文字自动注入到光标。不授也能用——会自动复制到剪贴板，⌘V 粘贴。
+                用于把文字自动注入到光标。不授也能用——会自动复制到剪贴板，{PASTE_HINT} 粘贴。
               </p>
             </div>
 
@@ -777,7 +778,7 @@ export default function App() {
       <main className="flex h-screen bg-[var(--bg)] text-[color:var(--fg)]">
         {/* 侧栏 */}
         <aside className="flex w-[200px] shrink-0 flex-col border-r border-[color:var(--border)] px-3">
-          <div data-tauri-drag-region className="h-10 shrink-0" />
+          <div data-tauri-drag-region className={cn("shrink-0", IS_MAC ? "h-10" : "h-3")} />
           <nav className="flex flex-col gap-1">
             {NAV.map((item) => {
               const Icon = item.icon;
@@ -802,7 +803,7 @@ export default function App() {
 
         {/* 内容 */}
         <section className="flex flex-1 flex-col overflow-hidden">
-          <div data-tauri-drag-region className="h-10 shrink-0" />
+          <div data-tauri-drag-region className={cn("shrink-0", IS_MAC ? "h-10" : "h-3")} />
           <div className="flex shrink-0 items-center justify-between gap-3 px-7 pb-5">
             <h1 className="text-[17px] font-semibold tracking-tight">{SECTION_TITLE[section]}</h1>
             {section === "voice" && (
@@ -882,7 +883,7 @@ export default function App() {
                     </div>
                     {hotkeyError && <p className="px-4 pt-2 text-xs text-red-500">{hotkeyError}</p>}
                     <p className="px-4 pt-1 pb-3 text-xs leading-relaxed text-[color:var(--fg-3)]">
-                      点徽章后按要绑的键：可单个修饰键（如 右⌥）、功能键，或「修饰键 +
+                      点徽章后按要绑的键：可单个修饰键（如 {IS_MAC ? "右⌥" : "右 Alt"}）、功能键，或「修饰键 +
                       字母/数字」组合；免按为双击触发。两个模式可同时启用，✕ 清除即停用，Esc 取消。
                     </p>
                   </div>
@@ -931,9 +932,12 @@ export default function App() {
                             <TriangleAlert size={14} className="mt-0.5 shrink-0" />
                             <span>
                               已识别但无法自动注入——文本已复制到剪贴板，按{" "}
-                              <kbd className="rounded bg-amber-100 px-1 dark:bg-amber-900">⌘V</kbd>{" "}
-                              粘贴即可。如需自动注入，请到「系统设置 → 隐私与安全性 →
-                              辅助功能」给本 app 授权。
+                              <kbd className="rounded bg-amber-100 px-1 dark:bg-amber-900">
+                                {PASTE_HINT}
+                              </kbd>{" "}
+                              粘贴即可。
+                              {IS_MAC &&
+                                "如需自动注入，请到「系统设置 → 隐私与安全性 → 辅助功能」给本 app 授权。"}
                             </span>
                           </p>
                         )}
@@ -1484,7 +1488,7 @@ export default function App() {
                       <div className="ui-row">
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium">辅助功能</div>
-                          <div className="desc">把文字自动注入光标；未授权则复制到剪贴板，⌘V 粘贴。</div>
+                          <div className="desc">把文字自动注入光标；未授权则复制到剪贴板，{PASTE_HINT} 粘贴。</div>
                         </div>
                         {accessibilityNeedsRestart ? (
                           <button

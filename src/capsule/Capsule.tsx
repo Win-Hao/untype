@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { AnimatePresence, motion } from "framer-motion";
 import { ClipboardCopy, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PASTE_HINT } from "@/lib/platform";
 import { useTauriEvent } from "@/lib/useTauriEvent";
 
 // 胶囊状态：录音中 / 处理中(thinking) / 失败提示态（已输出原文 / 已复制）。
@@ -157,7 +158,7 @@ export default function Capsule() {
               ) : phase === "clipboard" ? (
                 <>
                   <ClipboardCopy size={14} className="text-amber-400" />
-                  <span>已复制 · ⌘V 粘贴</span>
+                  <span>已复制 · {PASTE_HINT} 粘贴</span>
                 </>
               ) : (
                 <span className="wave">
