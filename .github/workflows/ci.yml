@@ -79,6 +79,7 @@ jobs:
         run: |
           mkdir -p src-tauri/target/release
           touch src-tauri/target/release/onnxruntime.dll \
+                src-tauri/target/release/onnxruntime_providers_shared.dll \
                 src-tauri/target/release/sherpa-onnx-c-api.dll
 
       - name: Install frontend deps
